@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contact Us</title>
+    <title>Contact JAT Property Management</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -77,141 +77,89 @@
 </head>
 <body>
     <div class="container">
-        <h1>Contact Us</h1>
+        <h1>Contact JAT Property Management</h1>
         
         <?php
+        // Initialize variables
+        $name = $email = $phone = $subject = $message = '';
+        $errors = [];
+        $success = false;
+        
+        // Process form when submitted
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            // Collect form data
-            $name = htmlspecialchars($_POST['name']);
-            $email = htmlspecialchars($_POST['email']);
-            $phone = htmlspecialchars($_POST['phone']);
-            $subject = htmlspecialchars($_POST['subject']);
-            $message = htmlspecialchars($_POST['message']);
-            $contact_method = htmlspecialchars($_POST['contact_method']);
+            // Sanitize inputs
+            $name = htmlspecialchars($_POST['name'] ?? '');
+            $email = filter_var($_POST['email'] ?? '', FILTER_SANITIZE_EMAIL);
+            $phone = htmlspecialchars($_POST['phone'] ?? '');
+            $subject = htmlspecialchars($_POST['subject'] ?? '');
+            $message = htmlspecialchars($_POST['message'] ?? '');
             
             // Validate inputs
-            $errors = [];
             if (empty($name)) $errors[] = 'Name is required';
-            if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Valid email is required';
+            if (empty($email)) $errors[] = 'Email is required';
+            elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Invalid email format';
             if (empty($message)) $errors[] = 'Message is required';
             
+            // If no errors, send email
             if (empty($errors)) {
-                // Prepare email
                 $to = 'jatpropertymanagementllc@gmail.com';
-                $email_subject = "New Contact Form Submission: $subject";
-                $email_body = "
-                    <h2>New Contact Form Submission</h2>
-                    <p><strong>Name:</strong> $name</p>
-                    <p><strong>Email:</strong> $email</p>
-                    <p><strong>Phone:</strong> $phone</p>
-                    <p><strong>Preferred Contact Method:</strong> $contact_method</p>
-                    <p><strong>Subject:</strong> $subject</p>
-                    <p><strong>Message:</strong></p>
-                    <p>$message</p>
-                ";
+                $email_subject = "New Contact: $subject";
+                $email_body = "Name: $name\nEmail: $email\nPhone: $phone\n\nMessage:\n$message";
+                $headers = "From: $email\r\nReply-To: $email";
                 
-                // Email headers
-                $headers = "MIME-Version: 1.0\r\n";
-                $headers .= "Content-type: text/html; charset=UTF-8\r\n";
-                $headers .= "From: $name <$email>\r\n";
-                $headers .= "Reply-To: $email\r\n";
-                
-                // Send email
                 if (mail($to, $email_subject, $email_body, $headers)) {
-                    echo '<div class="success-message">Thank you! Your message has been sent successfully.</div>';
+                    $success = true;
+                    // Clear form on success
+                    $name = $email = $phone = $subject = $message = '';
                 } else {
-                    echo '<div class="error">Sorry, there was an error sending your message. Please try again later.</div>';
-                }
-            } else {
-                foreach ($errors as $error) {
-                    echo '<div class="error">' . $error . '</div>';
+                    $errors[] = 'Failed to send message. Please try again later.';
                 }
             }
         }
         ?>
         
-        <form id="contactForm" action="" method="POST">
+        <?php if ($success): ?>
+            <div class="success-message">
+                Thank you! Your message has been sent successfully.
+            </div>
+        <?php endif; ?>
+        
+        <?php if (!empty($errors)): ?>
+            <div class="error">
+                <?php foreach ($errors as $error): ?>
+                    <p><?php echo $error; ?></p>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+        
+        <form method="POST" action="">
             <div class="form-group">
                 <label for="name">Full Name*</label>
-                <input type="text" id="name" name="name" required>
-                <div id="nameError" class="error"></div>
+                <input type="text" id="name" name="name" value="<?php echo $name; ?>" required>
             </div>
             
             <div class="form-group">
                 <label for="email">Email Address*</label>
-                <input type="email" id="email" name="email" required>
-                <div id="emailError" class="error"></div>
+                <input type="email" id="email" name="email" value="<?php echo $email; ?>" required>
             </div>
             
             <div class="form-group">
                 <label for="phone">Phone Number</label>
-                <input type="tel" id="phone" name="phone">
-            </div>
-            
-            <div class="form-group">
-                <label for="contact_method">Preferred Contact Method</label>
-                <select id="contact_method" name="contact_method">
-                    <option value="email">Email</option>
-                    <option value="phone">Phone Call</option>
-                    <option value="text">Text Message</option>
-                </select>
+                <input type="tel" id="phone" name="phone" value="<?php echo $phone; ?>">
             </div>
             
             <div class="form-group">
                 <label for="subject">Subject</label>
-                <input type="text" id="subject" name="subject">
+                <input type="text" id="subject" name="subject" value="<?php echo $subject; ?>">
             </div>
             
             <div class="form-group">
                 <label for="message">Your Message*</label>
-                <textarea id="message" name="message" required></textarea>
-                <div id="messageError" class="error"></div>
+                <textarea id="message" name="message" required><?php echo $message; ?></textarea>
             </div>
             
             <button type="submit" class="submit-btn">Send Message</button>
         </form>
     </div>
-
-    <script>
-        // Enhanced client-side validation
-        document.getElementById('contactForm').addEventListener('submit', function(e) {
-            let isValid = true;
-            
-            // Clear previous errors
-            document.querySelectorAll('.error').forEach(el => el.textContent = '');
-            
-            // Name validation
-            const name = document.getElementById('name').value.trim();
-            if (name === '') {
-                document.getElementById('nameError').textContent = 'Please enter your name';
-                isValid = false;
-            }
-            
-            // Email validation
-            const email = document.getElementById('email').value.trim();
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (email === '') {
-                document.getElementById('emailError').textContent = 'Please enter your email';
-                isValid = false;
-            } else if (!emailRegex.test(email)) {
-                document.getElementById('emailError').textContent = 'Please enter a valid email';
-                isValid = false;
-            }
-            
-            // Message validation
-            const message = document.getElementById('message').value.trim();
-            if (message === '') {
-                document.getElementById('messageError').textContent = 'Please enter your message';
-                isValid = false;
-            } else if (message.length < 10) {
-                document.getElementById('messageError').textContent = 'Message should be at least 10 characters';
-                isValid = false;
-            }
-            
-            if (!isValid) {
-                e.preventDefault();
-            }
-        });
-    </script>
 </body>
 </html>

@@ -35,7 +35,9 @@
         }
         input[type="text"],
         input[type="email"],
-        textarea {
+        input[type="tel"],
+        textarea,
+        select {
             width: 100%;
             padding: 10px;
             border: 1px solid #ddd;
@@ -65,12 +67,70 @@
             font-size: 14px;
             margin-top: 5px;
         }
+        .success-message {
+            color: #27ae60;
+            text-align: center;
+            margin-top: 20px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Contact Us</h1>
-        <form id="contactForm" action="/submit-form" method="POST">
+        
+        <?php
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Collect form data
+            $name = htmlspecialchars($_POST['name']);
+            $email = htmlspecialchars($_POST['email']);
+            $phone = htmlspecialchars($_POST['phone']);
+            $subject = htmlspecialchars($_POST['subject']);
+            $message = htmlspecialchars($_POST['message']);
+            $contact_method = htmlspecialchars($_POST['contact_method']);
+            
+            // Validate inputs
+            $errors = [];
+            if (empty($name)) $errors[] = 'Name is required';
+            if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Valid email is required';
+            if (empty($message)) $errors[] = 'Message is required';
+            
+            if (empty($errors)) {
+                // Prepare email
+                $to = 'jatpropertymanagementllc@gmail.com';
+                $email_subject = "New Contact Form Submission: $subject";
+                $email_body = "
+                    <h2>New Contact Form Submission</h2>
+                    <p><strong>Name:</strong> $name</p>
+                    <p><strong>Email:</strong> $email</p>
+                    <p><strong>Phone:</strong> $phone</p>
+                    <p><strong>Preferred Contact Method:</strong> $contact_method</p>
+                    <p><strong>Subject:</strong> $subject</p>
+                    <p><strong>Message:</strong></p>
+                    <p>$message</p>
+                ";
+                
+                // Email headers
+                $headers = "MIME-Version: 1.0\r\n";
+                $headers .= "Content-type: text/html; charset=UTF-8\r\n";
+                $headers .= "From: $name <$email>\r\n";
+                $headers .= "Reply-To: $email\r\n";
+                
+                // Send email
+                if (mail($to, $email_subject, $email_body, $headers)) {
+                    echo '<div class="success-message">Thank you! Your message has been sent successfully.</div>';
+                } else {
+                    echo '<div class="error">Sorry, there was an error sending your message. Please try again later.</div>';
+                }
+            } else {
+                foreach ($errors as $error) {
+                    echo '<div class="error">' . $error . '</div>';
+                }
+            }
+        }
+        ?>
+        
+        <form id="contactForm" action="" method="POST">
             <div class="form-group">
                 <label for="name">Full Name*</label>
                 <input type="text" id="name" name="name" required>
@@ -81,6 +141,20 @@
                 <label for="email">Email Address*</label>
                 <input type="email" id="email" name="email" required>
                 <div id="emailError" class="error"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="phone">Phone Number</label>
+                <input type="tel" id="phone" name="phone">
+            </div>
+            
+            <div class="form-group">
+                <label for="contact_method">Preferred Contact Method</label>
+                <select id="contact_method" name="contact_method">
+                    <option value="email">Email</option>
+                    <option value="phone">Phone Call</option>
+                    <option value="text">Text Message</option>
+                </select>
             </div>
             
             <div class="form-group">
@@ -99,7 +173,7 @@
     </div>
 
     <script>
-        // Basic client-side validation
+        // Enhanced client-side validation
         document.getElementById('contactForm').addEventListener('submit', function(e) {
             let isValid = true;
             
@@ -115,10 +189,11 @@
             
             // Email validation
             const email = document.getElementById('email').value.trim();
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (email === '') {
                 document.getElementById('emailError').textContent = 'Please enter your email';
                 isValid = false;
-            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            } else if (!emailRegex.test(email)) {
                 document.getElementById('emailError').textContent = 'Please enter a valid email';
                 isValid = false;
             }
@@ -127,6 +202,9 @@
             const message = document.getElementById('message').value.trim();
             if (message === '') {
                 document.getElementById('messageError').textContent = 'Please enter your message';
+                isValid = false;
+            } else if (message.length < 10) {
+                document.getElementById('messageError').textContent = 'Message should be at least 10 characters';
                 isValid = false;
             }
             
